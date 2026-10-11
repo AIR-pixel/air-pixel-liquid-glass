@@ -2,6 +2,30 @@
 
 A configurable Liquid Glass theme plugin for DeepSeek Harness. It adds translucent interface surfaces, an optional wallpaper, desktop transparency, window blur, custom cursors, click ripples, and per-side conversation contrast controls.
 
+## Screenshots
+
+Full transparency: strength 2.0 (效果强度) with desktop transparency on (透出桌面), so the desktop reaches the eye unfiltered. The per-side conversation plates are what keep the body copy readable this far up the slider.
+
+![Liquid Glass with desktop transparency](assets/preview-transparent.png)
+
+The same screen with and without the theme:
+
+![The stock shell beside Liquid Glass](assets/preview-vs-stock.png)
+
+At the default strength, over the theme's own wallpaper — sidebar, pane, dialog, menu and floating panel:
+
+![Frosted panels at the default strength](assets/preview-surfaces.png)
+
+| Custom cursors | Click ripple |
+| --- | --- |
+| ![The five shipped cursors](assets/preview-cursors.png) | ![A click ripple, held](assets/preview-ripple.png) |
+
+The four tint presets, light and dark:
+
+![Tint presets in light and dark](assets/preview-tints.png)
+
+These are renders, not photographs. `node tools/docshots.mjs` boots the real `client.js` in a stand-in shell over a drawn desktop. A screen capture cannot show this feature at all: `PrintWindow` drops the alpha channel, so a see-through window comes back as a black rectangle — measured in `tools/appshot.py`.
+
 ## Features
 
 - Frosted surfaces with adjustable strength, blur, tint, and wallpaper.
@@ -25,7 +49,7 @@ node tools/patcheck.mjs
 node tools/mutationaudit.mjs
 ```
 
-Some visual inspection scripts need Python with Pillow. See [DEVELOPMENT.md](DEVELOPMENT.md) for architecture, checks, and rename migration details.
+Regenerate the images above with `node tools/docshots.mjs` (writes `assets/`, which `screenshots.json` points the plugin market at). Some visual inspection scripts need Python with Pillow. See [DEVELOPMENT.md](DEVELOPMENT.md) for architecture, checks, and rename migration details.
 
 ## Compatibility
 

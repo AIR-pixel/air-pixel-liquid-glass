@@ -10,6 +10,7 @@ This file documents the current implementation and summarizes key engineering de
 - `tools/asarpatch.py` applies and verifies the optional Windows host patch used for desktop transparency and window material control.
 - The package ID is `air-pixel-liquid-glass`. Keep it identical in `package.json`, the Cordis bundle, and both plugin registrations.
 - `package.json` limits the npm package to runtime files, the host patch helper, and user-facing docs. The visual probes and test suite remain in the source repository, not the installed package.
+- `assets/` and `screenshots.json` sit deliberately outside that whitelist. The plugin market reads the curated shot list from this repository rather than from the tarball — a card without one falls back to scraping the README, which looks unfinished next to the cards that have one. Regenerate both with `node tools/docshots.mjs`; if a file is added or renamed, update `screenshots.json` in the same commit.
 - Every client config ingress (cache, host response, and settings changes) passes through `normalizeDocument`; rendering assumes its values are already normalized.
 
 ## Checks
@@ -37,4 +38,3 @@ The previous package ID was `dsh-theme-liquid-glass`; the new ID is `air-pixel-l
 4. Restart or reload DeepSeek Harness, then confirm the theme and desktop controls in Settings.
 
 The repository checkout folder may keep any name; the installed package identity comes from `package.json` and the bundle manifest.
-
