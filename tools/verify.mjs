@@ -359,6 +359,11 @@ check('bundle id matches package name', (() => {
   const bundle = fs.readFileSync(path.join(HERE, '..', 'cordis.patch.yml'), 'utf8');
   return bundle.includes(`id: ${pkg.name}`) && bundle.includes(`name: ${pkg.name}`);
 })());
+check('legacy recipe marker remains upgradeable', (() => {
+  const sourceText = fs.readFileSync(path.join(HERE, 'asarpatch.py'), 'utf8');
+  return sourceText.includes('LEGACY_MARKER_PREFIXES = ("dsh-theme-liquid-glass: the recipe",)') &&
+    sourceText.includes('if any(f"{prefix} (material: {material})" in text for prefix in LEGACY_MARKER_PREFIXES):');
+})());
 
 const bundle = registration.factory(mockRequire);
 check('exports.apply is a function', typeof bundle.apply === 'function');

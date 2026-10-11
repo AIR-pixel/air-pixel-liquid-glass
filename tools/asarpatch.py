@@ -242,6 +242,7 @@ RUNTIME_ON = "acrylic"
 # above is about. The prefix stays byte-identical so the host half's scan
 # (`PATCH_MARKER` in index.js) keeps matching every variant without changing.
 MARKER_PREFIX = "air-pixel-liquid-glass: the recipe"
+LEGACY_MARKER_PREFIXES = ("dsh-theme-liquid-glass: the recipe",)
 
 
 def marker_for(material):
@@ -472,7 +473,11 @@ def installed_material(text):
     for material in MATERIALS:
         if marker_for(material) in text:
             return material
+        if any(f"{prefix} (material: {material})" in text for prefix in LEGACY_MARKER_PREFIXES):
+            return material
     if MARKER_PREFIX in text:
+        return "acrylic"
+    if any(prefix in text for prefix in LEGACY_MARKER_PREFIXES):
         return "acrylic"
     return None
 

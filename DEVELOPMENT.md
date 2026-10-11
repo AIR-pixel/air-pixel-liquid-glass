@@ -31,7 +31,7 @@ The previous package ID was `dsh-theme-liquid-glass`; the new ID is `air-pixel-l
 
 1. Replace the old bundle ID in the active DSH profile with `air-pixel-liquid-glass` and update the linked package path if the checkout directory is renamed.
 2. Move the prior configuration and `asar-pointer.json` from `~/.dsh/plugins/dsh-theme-liquid-glass/` to `~/.dsh/plugins/air-pixel-liquid-glass/` to preserve settings and the selected client archive.
-3. Re-run `tools/asarpatch.py --check`. The old archive marker contains the old package ID; apply the patch again with the new source if the check does not recognize it.
+3. Re-run `tools/asarpatch.py --check`. The patch helper recognizes the old recipe marker and can upgrade an existing recipe to the new marker while adding the current window watcher.
 4. Restart or reload DeepSeek Harness, then confirm the theme and desktop controls in Settings.
 
 The repository checkout folder may keep any name; the installed package identity comes from `package.json` and the bundle manifest.
