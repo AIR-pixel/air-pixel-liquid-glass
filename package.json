@@ -1,0 +1,32 @@
+{
+  "name": "air-pixel-liquid-glass",
+  "version": "0.1.0",
+  "description": "A configurable Liquid Glass theme for DeepSeek Harness with frosted surfaces, wallpaper, desktop transparency, custom cursors, and click ripples.",
+  "type": "module",
+  "main": "./index.js",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "immediately": true,
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-client-locale": "*",
+    "@deepseek-ai/dsh-client-ui-settings": "*",
+    "@deepseek-ai/dsh-client-ui-slots": "*"
+  }
+}

@@ -1,0 +1,23 @@
+# Local DeepSeek Harness / Electron runtime and user data
+/tools/_probe/
+/tools/_staging_app.asar*
+/tools/_peek_main*.js
+/tools/_peek_preload.cjs
+/tools/__pycache__/
+/tools/fixtures/dsh-official.css
+
+# Generated previews, captures, and mutation logs
+/tools/_preview/
+/tools/_realshot/
+/tools/*.log
+/tools/*-out.txt
+
+# Local runtime state and backups
+/liquid-glass-window-material.json
+/liquid-glass-window-report.json
+*.bak-*
+*.backup
+*.new
+*.old
+.DS_Store
+Thumbs.db
