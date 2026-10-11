@@ -31,6 +31,10 @@ Some visual inspection scripts need Python with Pillow. See [DEVELOPMENT.md](DEV
 
 Designed for DeepSeek Harness on Windows and the web GUI. Desktop transparency and window blur depend on the installed Harness build and supported Windows compositor APIs.
 
+## Permissions and behavior
+
+The plugin injects theme styles and custom cursors into the Harness web UI, reads and writes its own JSON settings through a local host API, and logs diagnostic status through the host logger. The optional `tools/asarpatch.py` helper modifies the installed Harness `app.asar` only when run explicitly by the user; it keeps a backup and supports checking or reverting the patch. The plugin does not make external network requests.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

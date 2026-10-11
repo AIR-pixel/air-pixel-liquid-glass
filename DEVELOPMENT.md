@@ -1,6 +1,6 @@
 # Development notes
 
-This concise technical guide documents the current implementation. The earlier long-form development journal was overwritten while preparing the new public README and could not be recovered from either WorkBuddy workspace. This file does not claim to reproduce that journal.
+This file documents the current implementation and summarizes key engineering decisions. The previous long-form development journal (110,097 bytes) was overwritten while preparing the public README and could not be recovered from either WorkBuddy workspace. This summary does not reproduce that journal.
 
 ## Architecture
 
