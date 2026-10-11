@@ -1,0 +1,6 @@
+# Bundle patch for this profile layer: a top-level array of loader patch entries.
+# The client half (client.js) only loads when the plugin is actually activated,
+# so this entry is what puts the theme on the boot path.
+- insert:
+    - id: air-pixel-liquid-glass
+      name: air-pixel-liquid-glass
