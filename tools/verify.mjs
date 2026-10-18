@@ -1539,6 +1539,32 @@ check(
 // curve: every one of them fails if the control is wired back to the slider.
 // ---------------------------------------------------------------------------
 const frostIn = (cfg) => blurOf(renderWith({ ...BASE_CFG, ...cfg }).css);
+function frostEventIn(value) {
+  storage.set('dsh_liquid_glass_config', JSON.stringify({ ...BASE_CFG, frost: 10 }));
+  storage.set('dsh_liquid_glass_material', JSON.stringify('patched'));
+  const originalSetTimeout = windowStub.setTimeout;
+  windowStub.setTimeout = () => 1; // keep this synchronous probe from saving to the host
+  const b = registration.factory(mockRequire);
+  const c = makeCtx();
+  try {
+    b.apply(c);
+    const dict = (c.state.dicts ?? {}).zh ?? {};
+    const index = c.state.registered.findIndex((d) => d.name === 'dsh.liquid-glass.item');
+    if (index === -1) return null;
+    const nodes = [];
+    walkTree(c.state.components[index]({ t: (key) => dict[key] ?? key }), (node) => nodes.push(node));
+    const slider = nodes.find(
+      (node) => node?.props?.type === 'range' && node.props['aria-label'] === dict.frostLabel
+    );
+    if (slider?.props?.onChange === undefined) return null;
+    slider.props.onChange({ target: { value: String(value) } });
+    return blurOf(styleText());
+  } finally {
+    for (const dispose of c.state.disposes) dispose();
+    windowStub.setTimeout = originalSetTimeout;
+  }
+}
+
 check(
   'follow mode reproduces the old curve to the pixel',
   frostIn({ intensity: 0.2 }) === 23 && frostIn({ intensity: 1 }) === 16 && frostIn({ intensity: 2 }) === 0,
@@ -1570,6 +1596,14 @@ check(
   frostIn({ intensity: 1, frost: 999 }) === 40 && frostIn({ intensity: 1, frost: -12 }) === 0,
   `${frostIn({ intensity: 1, frost: 999 })} / ${frostIn({ intensity: 1, frost: -12 })} — the host clamps `
     + 'as well, and the two are separate implementations by design, so each needs its own proof'
+);
+const frostEventHigh = frostEventIn(999);
+const frostEventLow = frostEventIn(-12);
+check(
+  'frost slider changes are normalized before the next render',
+  frostEventHigh === 40 && frostEventLow === 0,
+  `${frostEventHigh} / ${frostEventLow} — user changes and restored settings must pass through ` +
+    'the same normalizer before rendering or writing the local cache'
 );
 
 // ---------------------------------------------------------------------------
@@ -2430,7 +2464,7 @@ check(
  * assertions at the bottom would then read as a leak.
  *
  * @param {object} payload the GET body
- * @returns {Promise<{ switchOn: boolean, badge: string|null, dict: object }>}
+ * @returns {Promise<{ switchOn: boolean, badge: string|null, noticeTexts: string[], dict: object }>}
  */
 async function hydrateWith(payload) {
   let release = null;
@@ -2468,9 +2502,13 @@ async function hydrateWith(payload) {
     walkTree(row, (n) => {
       if (typeof n === 'object' && n !== null && n?.props?.className === 'dsl-status') slot.push(n);
     });
+    const notices = nodes.filter(
+      (n) => typeof n === 'object' && n !== null && n.props?.className === 'dsl-notice'
+    );
     return {
       switchOn: sw?.props['aria-checked'] === 'true',
       badge: slot.length === 1 ? textsOf(slot[0]).join('') : null,
+      noticeTexts: notices.map((notice) => textsOf(notice).join(' ')),
       dict
     };
   })();
@@ -2531,6 +2569,26 @@ check(
     'reading as a setting, which is the same collision from the other side'
 );
 
+const diagnosisPath = 'C:\\test-install\\resources\\app.asar';
+const hydratedDiagnosis = await hydrateWith({
+  ...RESTART_BODY,
+  desktop: true,
+  material: 'unknown',
+  materialWhy: 'scan-failed',
+  materialPath: diagnosisPath,
+  materialScanError: [{ via: 'noAsar', code: 'EACCES', syscall: 'open' }]
+});
+const diagnosisText = hydratedDiagnosis.noticeTexts.find(
+  (text) => text.includes(hydratedDiagnosis.dict.patchNoticeTitle)
+) ?? '';
+check(
+  'scan diagnosis, archive path and reader error reach the settings notice',
+  diagnosisText.includes('scan-failed') &&
+    diagnosisText.includes(diagnosisPath) &&
+    diagnosisText.includes('noAsar=EACCES(open)'),
+  diagnosisText || '(no diagnosis notice)'
+);
+
 // ---------------------------------------------------------------------------
 // Teardown
 // ---------------------------------------------------------------------------
@@ -2572,7 +2630,7 @@ check('route registered', route?.path === '/api/theme-liquid-glass/config', rout
 check('route is an exact match', route?.kind === 'exact');
 check('handler is a function', typeof route?.handler === 'function');
 
-function drive(method, payload) {
+function drive(method, payload, target = route) {
   const headers = {};
   let body = '';
   return new Promise((resolve) => {
@@ -2590,7 +2648,7 @@ function drive(method, payload) {
       },
       destroy() {}
     };
-    void route.handler(req, res);
+    void target.handler(req, res);
     body = '';
   });
 }
@@ -3038,12 +3096,29 @@ delete process.env.DSH_ASAR;
 // by more than a syntax check.
 
 const ASARPATCH = path.join(HERE, 'asarpatch.py');
-const PYTHON = process.env.DSL_PYTHON ?? 'python';
+const PYTHON_CANDIDATES = process.env.DSL_PYTHON
+  ? [[process.env.DSL_PYTHON, []]]
+  : process.platform === 'win32'
+    ? [['python', []], ['py', ['-3']]]
+    : [['python3', []], ['python', []]];
+
+function execPython(args, options) {
+  let missing;
+  for (const [executable, prefix] of PYTHON_CANDIDATES) {
+    try {
+      return execFileSync(executable, [...prefix, ...args], options);
+    } catch (error) {
+      if (error?.code !== 'ENOENT' || process.env.DSL_PYTHON) throw error;
+      missing = error;
+    }
+  }
+  throw missing ?? new Error('No Python interpreter found');
+}
 
 let WATCHER_SRC = null;
 let watcherError = null;
 try {
-  WATCHER_SRC = execFileSync(PYTHON, [ASARPATCH, '--print-watcher'], {
+  WATCHER_SRC = execPython([ASARPATCH, '--print-watcher'], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore']
   });
@@ -3477,6 +3552,29 @@ check(
   'DSH_ASAR override wins',
   overridden.file === fakeAsar,
   `${overridden.file} (expected ${fakeAsar})`
+);
+
+// The resolver returning a path is not enough: the API response is what the
+// client receives, so it must carry the same path through materialFields().
+// Use a fresh module instance to avoid the first instance's memoised result.
+const pathProofAsar = path.join(overrideDir, 'path-proof.asar');
+fs.writeFileSync(pathProofAsar, 'test archive without the plugin marker', 'utf8');
+const previousAsar = process.env.DSH_ASAR;
+process.env.DSH_ASAR = pathProofAsar;
+const pathProofHost = await import(`${pathToFileURL(HOST).href}?path-proof=${Date.now()}`);
+let pathProofRoute = null;
+pathProofHost.apply({
+  webServer: { register: (r) => { pathProofRoute = r; } },
+  logger: { info: () => {} }
+});
+const pathProofResponse = await drive('GET', undefined, pathProofRoute);
+if (previousAsar === undefined) delete process.env.DSH_ASAR;
+else process.env.DSH_ASAR = previousAsar;
+const pathProofConfig = JSON.parse(pathProofResponse.body);
+check(
+  'the detected archive path reaches the config response',
+  pathProofResponse.statusCode === 200 && pathProofConfig.materialPath === pathProofAsar,
+  `${pathProofConfig.materialPath} (expected ${pathProofAsar})`
 );
 
 // ---------------------------------------------------------------------------

@@ -980,11 +980,14 @@ ${PLATE_SELECTOR} {
      * shell *and* a frosted one, because on a single axis "拉满" could only ever
      * mean "no frost".
      *
-     * @param {number|null} frost explicit px, or null to follow the curve.
+     * @param {number|null} frost normalized explicit px, or null to follow the curve.
      */
     function blurOf(intensity, frost) {
       if (typeof frost !== 'number' || !Number.isFinite(frost)) return autoFrostOf(intensity);
-      return Math.min(FROST_MAX, Math.max(0, Math.round(frost)));
+      // Every config ingress is normalized before it reaches the renderer.
+      // Keep this calculation focused on choosing the axis, not sanitizing it
+      // a second time and masking a missing normalization check elsewhere.
+      return frost;
     }
 
     /**
@@ -2686,7 +2689,7 @@ ${floats} {
 
     /** Apply immediately, persist in the background. */
     function commit(patch) {
-      config = { ...config, ...patch };
+      config = normalizeDocument({ ...config, ...patch });
       writeCache();
       applyTheme();
       notify();

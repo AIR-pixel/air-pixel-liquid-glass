@@ -9,6 +9,9 @@ This file documents the current implementation and summarizes key engineering de
 - `cordis.patch.yml` registers the bundle on the loader boot path.
 - `tools/asarpatch.py` applies and verifies the optional Windows host patch used for desktop transparency and window material control.
 - The package ID is `air-pixel-liquid-glass`. Keep it identical in `package.json`, the Cordis bundle, and both plugin registrations.
+- `package.json` limits the npm package to runtime files, the host patch helper, and user-facing docs. The visual probes and test suite remain in the source repository, not the installed package.
+- `assets/` and `screenshots.json` sit deliberately outside that whitelist. The plugin market reads the curated shot list from this repository rather than from the tarball — a card without one falls back to scraping the README, which looks unfinished next to the cards that have one. Regenerate both with `node tools/docshots.mjs`; if a file is added or renamed, update `screenshots.json` in the same commit.
+- Every client config ingress (cache, host response, and settings changes) passes through `normalizeDocument`; rendering assumes its values are already normalized.
 
 ## Checks
 
@@ -21,7 +24,7 @@ node tools/patcheck.mjs
 node tools/mutationaudit.mjs
 ```
 
-`preflight` checks JavaScript syntax, `verify` exercises client and host behavior against stubs, `patcheck` confirms patch mutation patterns still match, and `mutationaudit` checks that no test mutation was left in a source file. `teeth.mjs` is a slow mutation coverage audit that temporarily edits source files, launches `verify.mjs` repeatedly, and restores them afterward. It reported uncovered assertions in a prior run; its nonzero result is not the same as a functional test failure.
+`preflight` checks JavaScript syntax, `verify` exercises client and host behavior against stubs, `patcheck` confirms patch mutation patterns still match, and `mutationaudit` checks that no test mutation was left in a source file. `verify.mjs` uses `python` when available and falls back to `py -3` on Windows; `DSL_PYTHON` can select a specific interpreter. `teeth.mjs` is a slow mutation coverage audit that temporarily edits source files, launches `verify.mjs` repeatedly, and restores them afterward.
 
 Some visual inspection scripts need Python with Pillow. The local `tools/_probe`, `tools/_preview`, and `tools/_realshot` directories contain generated runtimes, captures, or test data and are excluded from the public repository. `tools/harness.mjs` uses `tools/fixtures/dsh-official.css`; that CSS snapshot has not been included in the staged public files pending confirmation of its redistribution terms.
 

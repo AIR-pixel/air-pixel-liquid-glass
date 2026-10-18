@@ -355,11 +355,19 @@ const MUTATIONS = [
     /if \(typeof frost !== 'number' \|\| !Number\.isFinite\(frost\)\) return autoFrostOf\(intensity\);/,
     'return autoFrostOf(intensity);'
   ],
-  // Host and renderer clamp separately on purpose, so each needs its own proof.
+  // The renderer's input normalizer must clamp values restored from storage.
+  // Mutate that boundary rather than `blurOf`'s defensive clamp: every real
+  // caller reaches `blurOf` through this normalizer, so mutating the private
+  // helper was unreachable and did not test a user-visible path.
   [
-    'frost — the renderer has to clamp what it is handed',
-    /return Math\.min\(FROST_MAX, Math\.max\(0, Math\.round\(frost\)\)\);/,
-    'return Math.round(frost);'
+    'frost — the renderer clamps values restored from storage',
+    /next\.frost = Math\.min\(FROST_MAX, Math\.max\(0, Math\.round\(raw\.frost\)\)\);/,
+    'next.frost = Math.round(raw.frost);'
+  ],
+  [
+    'frost — control changes pass through the same normalizer',
+    /config = normalizeDocument\(\{ \.\.\.config, \.\.\.patch \}\);/,
+    'config = { ...config, ...patch };'
   ],
   [
     'frost — and so does the host',
