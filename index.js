@@ -21,7 +21,7 @@
  *     file in the install's resources directory and the patched main process
  *     applies it and writes a report back. See `applyWindowBlur`.
  *
- * Storage: `~/.dsh/plugins/dsh-theme-liquid-glass/config.json`
+ * Storage: `~/.dsh/plugins/air-pixel-liquid-glass/config.json`
  * (`$DSH_HOME` wins over `~/.dsh`, same precedence the harness-home package uses).
  *
  * HTTP surface (registered on the Harness web server):
@@ -229,7 +229,19 @@ currentConfig = readConfigFile();
  * present. Reporting which material is installed is `asarpatch.py --check`'s
  * job, where it can also say what to do about it.
  */
-const PATCH_MARKER = 'dsh-theme-liquid-glass: the recipe';
+const PATCH_MARKER = 'air-pixel-liquid-glass: the recipe';
+
+/**
+ * Every prefix a patch has ever written, current first.
+ *
+ * The plugin was renamed from `dsh-theme-liquid-glass`, and `tools/asarpatch.py`
+ * kept the old prefix in `LEGACY_MARKER_PREFIXES` so an archive patched before
+ * the rename is still recognised (and revertable). This half has to accept the
+ * same set: scanning for the new prefix alone reported `stock` against an
+ * archive the renamed tool had just patched — the switch then refused to work
+ * while the window was, in fact, already transparent.
+ */
+const PATCH_MARKERS = [PATCH_MARKER, 'dsh-theme-liquid-glass: the recipe'];
 const SCAN_CHUNK = 4 * 1024 * 1024;
 
 /** Where tools/asarpatch.py records the archive it patched. */
@@ -440,6 +452,9 @@ function archiveReaders() {
  * runs at plugin load; the tail of each chunk is carried into the next read so
  * a marker straddling a boundary is still found.
  *
+ * `marker` may be a list — see `PATCH_MARKERS`. One pass answers for all of
+ * them, so accepting the legacy prefix costs no extra read of the archive.
+ *
  * @returns {{ found: boolean|null, error: { code: string, syscall: string }|null }}
  */
 function scanWith(io, file, marker) {
@@ -449,16 +464,24 @@ function scanWith(io, file, marker) {
       return { found: null, error: { code: 'ENOSYS', syscall: 'openSync' } };
     }
     fd = io.openSync(file, 'r');
-    const needle = Buffer.from(marker, 'utf8');
-    const buf = Buffer.alloc(SCAN_CHUNK + needle.length);
+    const wanted = Array.isArray(marker) ? marker : [marker];
+    const needles = wanted
+      .filter((entry) => typeof entry === 'string' && entry !== '')
+      .map((entry) => Buffer.from(entry, 'utf8'));
+    if (needles.length === 0) return { found: false, error: null };
+    const longest = needles.reduce((max, needle) => Math.max(max, needle.length), 0);
+    const buf = Buffer.alloc(SCAN_CHUNK + longest);
     let carry = 0;
     let at = 0;
     for (;;) {
       const read = io.readSync(fd, buf, carry, SCAN_CHUNK, at);
       if (read <= 0) return { found: false, error: null };
       const total = carry + read;
-      if (buf.subarray(0, total).indexOf(needle) !== -1) return { found: true, error: null };
-      carry = Math.min(needle.length - 1, total);
+      const window = buf.subarray(0, total);
+      if (needles.some((needle) => window.indexOf(needle) !== -1)) {
+        return { found: true, error: null };
+      }
+      carry = Math.min(longest - 1, total);
       buf.copy(buf, 0, total - carry, total);
       at += read;
     }
@@ -584,7 +607,7 @@ function detectWindowMaterialDetailed() {
     return { material: materialCache, ...diagnosisCache };
   }
 
-  const scan = scanForMarkerDetailed(file, PATCH_MARKER);
+  const scan = scanForMarkerDetailed(file, PATCH_MARKERS);
   materialCache = scan.found === null ? 'unknown' : scan.found ? 'patched' : 'stock';
   diagnosisCache = {
     materialPath: file,
@@ -986,6 +1009,7 @@ export {
   ROUTE,
   STORE_DIR,
   PATCH_MARKER,
+  PATCH_MARKERS,
   POINTER_FILE,
   detectWindowMaterial,
   detectWindowMaterialDetailed,

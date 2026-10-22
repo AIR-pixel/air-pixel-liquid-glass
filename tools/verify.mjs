@@ -2618,6 +2618,26 @@ check('store redirected to a sandbox', host.CONFIG_FILE.startsWith(sandboxHome),
 check('exports plugin name', host.name === 'air-pixel-liquid-glass', host.name);
 check('injects webServer', JSON.stringify(host.inject) === '["webServer"]');
 
+// The two halves name the marker independently — the patch tool writes it into
+// main.js, this half scans for it — so a rename applied to one and not the
+// other reports `stock` against an archive that is patched, and the switch
+// silently refuses to work. Nothing else in this file can catch that: every
+// fake archive here is built from `host.PATCH_MARKER`, which makes the scan
+// self-consistent by construction. So compare against the tool's own source.
+check('host accepts every marker prefix the patch tool writes', (() => {
+  const toolText = fs.readFileSync(path.join(HERE, 'asarpatch.py'), 'utf8');
+  const current = toolText.match(/^MARKER_PREFIX = "([^"]+)"/m)?.[1];
+  const legacyBlock = toolText.match(/^LEGACY_MARKER_PREFIXES = \(([^)]*)\)/m)?.[1] ?? '';
+  const legacy = [...legacyBlock.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  // A pattern that stops matching would leave `missing` empty and pass this
+  // check without comparing anything — the failure mode a consistency test is
+  // most likely to die of, so the parse has to succeed on its own terms first.
+  if (typeof current !== 'string' || current === '') return false;
+  const accepted = host.PATCH_MARKERS ?? [host.PATCH_MARKER];
+  const missing = [current, ...legacy].filter((p) => !accepted.includes(p));
+  return missing.length === 0 && accepted.length >= 1 + legacy.length;
+})());
+
 let route = null;
 // Captured rather than discarded: the log is where this diagnosis is actually
 // read on the machine that has the problem, so it gets asserted further down.

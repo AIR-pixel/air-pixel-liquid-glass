@@ -1,6 +1,6 @@
 {
   "name": "air-pixel-liquid-glass",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A configurable Liquid Glass theme for DeepSeek Harness with frosted surfaces, wallpaper, desktop transparency, custom cursors, and click ripples.",
   "type": "module",
   "main": "./index.js",
